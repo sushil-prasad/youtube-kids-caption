@@ -1,0 +1,25 @@
+{
+  "id": "ship",
+  "reference": {
+    "text": "Look at the ship.",
+    "words": [
+      {"word": "Look", "start": 0.0, "end": 0.25},
+      {"word": "at", "start": 0.25, "end": 0.35},
+      {"word": "the", "start": 0.35, "end": 0.45},
+      {"word": "ship", "start": 0.45, "end": 0.9}
+    ]
+  },
+  "hypothesis": {
+    "text": "look at the ship",
+    "words": [
+      {"word": "look", "start": 0.0, "end": 0.24, "confidence": 0.98},
+      {"word": "at", "start": 0.24, "end": 0.34, "confidence": 0.99},
+      {"word": "the", "start": 0.34, "end": 0.44, "confidence": 0.99},
+      {"word": "ship", "start": 0.44, "end": 0.91, "confidence": 0.97}
+    ]
+  },
+  "safety": {
+    "profane": [],
+    "clean": ["ship", "look"]
+  }
+}

@@ -2,7 +2,7 @@
 
 This document maps [README.md](../README.md) onto Make targets. Run `make help` from the repo root. The pipeline flowchart lives in [flowchart.md](../flowchart.md).
 
-Application code (`app/`, `dashboard/`, `tests/`) is not in the tree yet. Step targets echo the intended work and fail with `Not implemented yet` until the listed module exists.
+Phases 1–6 are implemented under `app/`, `dashboard/`, `evaluate.py`, and `tests/`. Step targets still print the intended artifacts; they no longer fail with “Not implemented yet”.
 
 ## Goal
 
@@ -77,7 +77,7 @@ make test
 
 Phase aggregators depend on their step targets. Optional stages must remain skippable (`ENABLE_DIARIZATION=0`, `ENABLE_SOUND_EVENTS=0`) so the core pipeline still runs.
 
-Suggested order: get `make phase1` green on Apple Silicon, then Phases 2–6 independently.
+Suggested order: `make phase1` through `make phase6`, or `make all`. Optional stages stay skippable (`ENABLE_DIARIZATION=0`, `ENABLE_SOUND_EVENTS=0`).
 
 ---
 
@@ -182,10 +182,13 @@ Aggregator: `make phase6`
 
 Do not assume competition ranking equals YouTube children's-content quality.
 
-| Target | README | Modules to add later | Artifacts | Acceptance |
+| Target | README | Modules | Artifacts | Acceptance |
 |---|---|---|---|---|
-| `evaluate` | §37 | `evaluate.py` | metric report | WER, CER, timestamp accuracy, low-confidence rate, profanity FP/FN, correction accuracy, censorship rate, reading speed |
-| `ablation` | §38 | same + pipeline flags | per-config metrics | ASR only; +punctuation; +profanity; +correction; full pipeline |
+| `evaluate` | §37 | `evaluate.py` | `outputs/evaluation/metrics.json` | WER, CER, timestamp accuracy, low-confidence rate, profanity FP/FN, correction accuracy, censorship rate, reading speed |
+| `ablation` | §38 | same + `--ablation` | `outputs/evaluation/ablation.json` | ASR only; +punctuation; +profanity; +correction; full pipeline |
+| `test-phase6` | §36–38 | `tests/test_evaluate.py` | pytest output | Fixture dataset; never loads ASR |
+
+Fixture clips live in `evaluation_data/`. That run does **not** download the Pasketti model. Competition ranking is not treated as YouTube children's-content quality.
 
 ---
 
@@ -196,7 +199,7 @@ Do not assume competition ranking equals YouTube children's-content quality.
 | `help` | Default. Lists targets; points at this file. |
 | `pipeline` | `python -m app.pipeline $(VIDEO)`; supports `--skip-asr` when artifacts exist. |
 | `test` | All `test-phase*`. |
-| `all` | Phases 1–6. Will fail until implemented. |
+| `all` | Phases 1–6. Evaluation uses the fixture dataset and does not require a GPU or model download. |
 
 Every job should later persist: config, ASR model version and checksum, device, timing, pipeline version, safety config, vocabulary, corrections, censoring decisions. Never overwrite raw outputs.
 
@@ -238,4 +241,4 @@ From README §42. Automatic captions must still require creator review.
 | 13 | SRT suitable for YouTube Studio | `validate-timestamps`, `export` |
 | — | Same path via CLI without dashboard | `cli`, `pipeline` |
 
-Phase 1 is successful when `make pipeline VIDEO=clip.mp4` writes a valid SRT. The project is successful when the table above is true.
+Phase 1 is successful when `make pipeline VIDEO=clip.mp4` writes a valid SRT. The project is successful when the table above is true — including the CLI path without the dashboard.

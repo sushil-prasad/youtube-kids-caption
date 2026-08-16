@@ -14,7 +14,10 @@ def transcribe_job(job_dir: str | Path, device: str | None = None, model_name: s
     if not audio_path.is_file():
         raise FileNotFoundError(f"Missing {audio_path}. Extract audio first.")
     model = get_asr_model(name=model_name, device=device)
-    transcript = model.transcribe(audio_path)
+    from app.pipeline.vocabulary import load_vocabulary
+
+    vocabulary = load_vocabulary(job_dir).asr_hints()
+    transcript = model.transcribe(audio_path, vocabulary=vocabulary or None)
     raw_path = job_dir / "raw_transcript.json"
     raw_path.write_text(json.dumps(transcript.to_dict(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     write_word_timestamps(transcript, job_dir / "word_timestamps.json")

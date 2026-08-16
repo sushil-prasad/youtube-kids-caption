@@ -3,7 +3,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from app.pipeline.timestamps import words_from_aligner, words_from_text
-from app.transcript import Transcript
+from app.pipeline.srt import validate_captions
+from app.transcript import Caption, Transcript
 
 
 def test_words_from_text_even_spacing() -> None:
@@ -40,3 +41,30 @@ def test_transcript_roundtrip() -> None:
     assert cloned.text == original.text
     assert cloned.words[0].word == "Look"
     assert cloned.words[0].start == 10.1
+
+
+def test_overlapping_captions_are_repaired() -> None:
+    captions = [
+        Caption(1, 0.0, 2.0, "Hello there"),
+        Caption(2, 1.5, 3.0, "How are you"),
+    ]
+    repaired, issues = validate_captions(captions)
+    assert len(repaired) == 2
+    assert repaired[1].start >= repaired[0].end - 1e-9
+    assert any(issue.type == "overlap" for issue in issues)
+
+
+def test_negative_timestamps_are_clamped() -> None:
+    repaired, issues = validate_captions([Caption(1, -1.0, 0.4, "Hi")])
+    assert repaired[0].start >= 0.0
+    assert repaired[0].end >= repaired[0].start
+    assert any(issue.type == "negative" for issue in issues)
+
+
+def test_empty_captions_are_dropped() -> None:
+    repaired, issues = validate_captions(
+        [Caption(1, 0.0, 1.0, "  "), Caption(2, 1.2, 2.0, "Hello")]
+    )
+    assert len(repaired) == 1
+    assert repaired[0].text.strip() == "Hello"
+    assert any(issue.type == "empty" for issue in issues)

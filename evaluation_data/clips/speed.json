@@ -1,0 +1,47 @@
+{
+  "id": "speed",
+  "reference": {
+    "text": "Wow look at all these dinosaurs running around the castle so quickly together right now.",
+    "words": [
+      {"word": "Wow", "start": 0.0, "end": 0.12},
+      {"word": "look", "start": 0.12, "end": 0.2},
+      {"word": "at", "start": 0.2, "end": 0.26},
+      {"word": "all", "start": 0.26, "end": 0.32},
+      {"word": "these", "start": 0.32, "end": 0.4},
+      {"word": "dinosaurs", "start": 0.4, "end": 0.52},
+      {"word": "running", "start": 0.52, "end": 0.62},
+      {"word": "around", "start": 0.62, "end": 0.72},
+      {"word": "the", "start": 0.72, "end": 0.76},
+      {"word": "castle", "start": 0.76, "end": 0.88},
+      {"word": "so", "start": 0.88, "end": 0.94},
+      {"word": "quickly", "start": 0.94, "end": 1.04},
+      {"word": "together", "start": 1.04, "end": 1.14},
+      {"word": "right", "start": 1.14, "end": 1.22},
+      {"word": "now", "start": 1.22, "end": 1.35}
+    ]
+  },
+  "hypothesis": {
+    "text": "wow look at all these dinosaurs running around the castle so quickly together right now",
+    "words": [
+      {"word": "wow", "start": 0.0, "end": 0.12, "confidence": 0.9},
+      {"word": "look", "start": 0.12, "end": 0.2, "confidence": 0.88},
+      {"word": "at", "start": 0.2, "end": 0.26, "confidence": 0.99},
+      {"word": "all", "start": 0.26, "end": 0.32, "confidence": 0.97},
+      {"word": "these", "start": 0.32, "end": 0.4, "confidence": 0.96},
+      {"word": "dinosaurs", "start": 0.4, "end": 0.52, "confidence": 0.8},
+      {"word": "running", "start": 0.52, "end": 0.62, "confidence": 0.85},
+      {"word": "around", "start": 0.62, "end": 0.72, "confidence": 0.9},
+      {"word": "the", "start": 0.72, "end": 0.76, "confidence": 0.99},
+      {"word": "castle", "start": 0.76, "end": 0.88, "confidence": 0.84},
+      {"word": "so", "start": 0.88, "end": 0.94, "confidence": 0.97},
+      {"word": "quickly", "start": 0.94, "end": 1.04, "confidence": 0.82},
+      {"word": "together", "start": 1.04, "end": 1.14, "confidence": 0.86},
+      {"word": "right", "start": 1.14, "end": 1.22, "confidence": 0.93},
+      {"word": "now", "start": 1.22, "end": 1.35, "confidence": 0.91}
+    ]
+  },
+  "safety": {
+    "profane": [],
+    "clean": ["dinosaurs", "castle"]
+  }
+}

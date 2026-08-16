@@ -1,0 +1,10 @@
+# Custom vocabulary for children's/family captions.
+# term<TAB>category
+# Categories: character_names, people, locations, games, toys, fictional, brands, phrases, other
+
+Bluey	character_names
+Bingo	character_names
+Muffin	character_names
+Rainbow Castle	fictional
+Fluffernoodle	fictional
+Sparkleberry	fictional

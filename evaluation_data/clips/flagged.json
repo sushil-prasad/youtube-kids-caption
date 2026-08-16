@@ -1,0 +1,30 @@
+{
+  "id": "flagged",
+  "reference": {
+    "text": "That was a really bad idea.",
+    "words": [
+      {"word": "That", "start": 0.0, "end": 0.2},
+      {"word": "was", "start": 0.2, "end": 0.35},
+      {"word": "a", "start": 0.35, "end": 0.42},
+      {"word": "really", "start": 0.42, "end": 0.7},
+      {"word": "bad", "start": 0.7, "end": 0.95},
+      {"word": "idea", "start": 0.95, "end": 1.35}
+    ]
+  },
+  "hypothesis": {
+    "text": "that was a really crap idea",
+    "words": [
+      {"word": "that", "start": 0.0, "end": 0.2, "confidence": 0.96},
+      {"word": "was", "start": 0.2, "end": 0.35, "confidence": 0.98},
+      {"word": "a", "start": 0.35, "end": 0.42, "confidence": 0.99},
+      {"word": "really", "start": 0.42, "end": 0.7, "confidence": 0.95},
+      {"word": "crap", "start": 0.7, "end": 0.95, "confidence": 0.42},
+      {"word": "idea", "start": 0.95, "end": 1.35, "confidence": 0.97}
+    ]
+  },
+  "safety": {
+    "profane": ["crap"],
+    "clean": ["really", "idea"],
+    "corrections": [{"from": "crap", "to": "bad"}]
+  }
+}

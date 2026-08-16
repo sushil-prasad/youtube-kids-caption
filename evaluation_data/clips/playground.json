@@ -1,0 +1,32 @@
+{
+  "id": "playground",
+  "reference": {
+    "text": "Bingo found a Fluffernoodle in the garden.",
+    "words": [
+      {"word": "Bingo", "start": 0.0, "end": 0.35},
+      {"word": "found", "start": 0.35, "end": 0.6},
+      {"word": "a", "start": 0.6, "end": 0.7},
+      {"word": "Fluffernoodle", "start": 0.7, "end": 1.3},
+      {"word": "in", "start": 1.3, "end": 1.45},
+      {"word": "the", "start": 1.45, "end": 1.55},
+      {"word": "garden", "start": 1.55, "end": 2.1}
+    ]
+  },
+  "hypothesis": {
+    "text": "bingo found a fluffernoddle in the garden",
+    "words": [
+      {"word": "bingo", "start": 0.02, "end": 0.36, "confidence": 0.92},
+      {"word": "found", "start": 0.36, "end": 0.61, "confidence": 0.97},
+      {"word": "a", "start": 0.61, "end": 0.71, "confidence": 0.99},
+      {"word": "fluffernoddle", "start": 0.71, "end": 1.32, "confidence": 0.55},
+      {"word": "in", "start": 1.32, "end": 1.46, "confidence": 0.96},
+      {"word": "the", "start": 1.46, "end": 1.56, "confidence": 0.98},
+      {"word": "garden", "start": 1.56, "end": 2.12, "confidence": 0.94}
+    ]
+  },
+  "safety": {
+    "profane": [],
+    "clean": ["bingo", "garden", "fluffernoodle"],
+    "corrections": [{"from": "fluffernoddle", "to": "Fluffernoodle"}]
+  }
+}

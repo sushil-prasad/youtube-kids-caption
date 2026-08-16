@@ -12,5 +12,5 @@ class ASRModel(ABC):
     name: str = "base"
 
     @abstractmethod
-    def transcribe(self, audio_path: str | Path) -> Transcript:
+    def transcribe(self, audio_path: str | Path, vocabulary: list[str] | None = None) -> Transcript:
         """Return transcript text and word-level timestamps when available."""

@@ -30,6 +30,38 @@ def _env_float(name: str, default: float) -> float:
     return float(raw)
 
 
+def _env_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return default
+    return int(raw)
+
+
+def _env_csv(name: str) -> tuple[str, ...]:
+    raw = os.getenv(name, "") or ""
+    return tuple(item.strip() for item in raw.split(",") if item.strip())
+
+
+def normalize_safety_mode(value: str | None, default: str = "strict") -> str:
+    raw = (value or default).strip().lower().replace("_", "-")
+    aliases = {
+        "safe": "strict",
+        "strict": "strict",
+        "standard": "standard",
+        "literal": "review-only",
+        "review": "review-only",
+        "review-only": "review-only",
+    }
+    return aliases.get(raw, default)
+
+
+def normalize_unknown_profanity(value: str | None, default: str = "censor") -> str:
+    raw = (value or default).strip().lower()
+    if raw in {"censor", "flag", "keep"}:
+        return raw
+    return default
+
+
 @dataclass(frozen=True)
 class Settings:
     asr_model: str = "pasketti_first"
@@ -41,6 +73,31 @@ class Settings:
     enable_audio_normalization: bool = False
     confidence_high: float = 0.90
     confidence_medium: float = 0.70
+    confidence_unknown: float = 0.50
+    max_chars_per_line: int = 42
+    max_caption_lines: int = 2
+    min_cue_duration: float = 0.50
+    max_cue_duration: float = 7.0
+    pause_gap: float = 0.60
+    punctuation_pause: float = 0.45
+    max_cps: float = 17.0
+    max_wps: float = 4.0
+    min_caption_gap: float = 0.08
+    safety_mode: str = "strict"
+    unknown_profanity: str = "censor"
+    allowlist: tuple[str, ...] = ()
+    profanity_words_path: str | None = None
+    profanity_phrases_path: str | None = None
+    allowlist_path: str | None = None
+    corrections_path: str | None = None
+    vocabulary_path: str | None = None
+    correction_threshold: float = 0.65
+    context_window: int = 5
+    enable_diarization: bool = False
+    enable_sound_events: bool = False
+    enable_speaker_labels: bool = True
+    speaker_change_gap: float = 0.80
+    sound_event_threshold: float = 0.80
     max_new_tokens: int = 512
     max_inference_batch_size: int = 1
 
@@ -58,6 +115,31 @@ def load_settings() -> Settings:
         enable_audio_normalization=_env_bool("ENABLE_AUDIO_NORMALIZATION", False),
         confidence_high=_env_float("CONFIDENCE_HIGH", 0.90),
         confidence_medium=_env_float("CONFIDENCE_MEDIUM", 0.70),
+        confidence_unknown=_env_float("CONFIDENCE_UNKNOWN", 0.50),
+        max_chars_per_line=_env_int("MAX_CHARS_PER_LINE", 42),
+        max_caption_lines=_env_int("MAX_CAPTION_LINES", 2),
+        min_cue_duration=_env_float("MIN_CUE_DURATION", 0.50),
+        max_cue_duration=_env_float("MAX_CUE_DURATION", 7.0),
+        pause_gap=_env_float("PAUSE_GAP", 0.60),
+        punctuation_pause=_env_float("PUNCTUATION_PAUSE", 0.45),
+        max_cps=_env_float("MAX_CPS", 17.0),
+        max_wps=_env_float("MAX_WPS", 4.0),
+        min_caption_gap=_env_float("MIN_CAPTION_GAP", 0.08),
+        safety_mode=normalize_safety_mode(os.getenv("SAFETY_MODE"), "strict"),
+        unknown_profanity=normalize_unknown_profanity(os.getenv("UNKNOWN_PROFANITY"), "censor"),
+        allowlist=_env_csv("ALLOWLIST"),
+        profanity_words_path=os.getenv("PROFANITY_WORDS_PATH", "").strip() or None,
+        profanity_phrases_path=os.getenv("PROFANITY_PHRASES_PATH", "").strip() or None,
+        allowlist_path=os.getenv("ALLOWLIST_PATH", "").strip() or None,
+        corrections_path=os.getenv("CORRECTIONS_PATH", "").strip() or None,
+        vocabulary_path=os.getenv("VOCABULARY_PATH", "").strip() or None,
+        correction_threshold=_env_float("CORRECTION_THRESHOLD", 0.65),
+        context_window=_env_int("CONTEXT_WINDOW", 5),
+        enable_diarization=_env_bool("ENABLE_DIARIZATION", False),
+        enable_sound_events=_env_bool("ENABLE_SOUND_EVENTS", False),
+        enable_speaker_labels=_env_bool("ENABLE_SPEAKER_LABELS", True),
+        speaker_change_gap=_env_float("SPEAKER_CHANGE_GAP", 0.80),
+        sound_event_threshold=_env_float("SOUND_EVENT_THRESHOLD", 0.80),
         max_new_tokens=int(os.getenv("MAX_NEW_TOKENS", "512")),
         max_inference_batch_size=int(os.getenv("MAX_INFERENCE_BATCH_SIZE", "1")),
     )

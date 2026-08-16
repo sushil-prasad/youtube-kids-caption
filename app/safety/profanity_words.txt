@@ -1,0 +1,23 @@
+# Exact-token lexicon for children's captions. Not used as substring search.
+# token<TAB>severity   severity is strong or mild. Comments start with #.
+
+ass	strong
+asshole	strong
+bastard	strong
+bitch	strong
+bollocks	strong
+cock	strong
+crap	mild
+cunt	strong
+damn	mild
+dick	strong
+fuck	strong
+hell	mild
+piss	strong
+pussy	strong
+shit	strong
+slut	strong
+tits	strong
+twat	strong
+wank	strong
+whore	strong

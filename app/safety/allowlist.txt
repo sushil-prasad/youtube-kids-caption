@@ -1,0 +1,23 @@
+# Words that must not be treated as profanity unless the creator removes them.
+# Covers classic substring traps (Scunthorpe) plus homophones ASR often gets right.
+
+bass
+class
+scunthorpe
+assistant
+pass
+glass
+grass
+classic
+cassette
+assume
+passage
+compass
+kickass
+analysis
+hello
+shell
+shells
+help
+he'll
+dam

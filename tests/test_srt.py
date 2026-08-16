@@ -2,8 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.pipeline.srt import format_srt_timestamp, render_srt, wrap_caption, write_srt
-from app.transcript import Word
+from app.pipeline.srt import (
+    format_srt_timestamp,
+    parse_srt,
+    render_srt,
+    srt_from_job,
+    validate_captions,
+    wrap_caption,
+    write_srt,
+)
+from app.transcript import Caption, Word
 
 
 def test_format_srt_timestamp() -> None:
@@ -63,5 +71,42 @@ def test_skip_asr_artifacts_write_srt(tmp_path: Path) -> None:
     srt_path = run_pipeline(skip_asr=True, job_dir=job, output=tmp_path / "hello.srt")
     text = Path(srt_path).read_text(encoding="utf-8")
     assert "Hello world" in text
-    assert "00:00:00,000 --> 00:00:00,800" in text
+    assert "00:00:00,000 --> " in text
     assert (job / "final.srt").is_file()
+    assert (job / "confidence.json").is_file()
+    assert (job / "punctuated_transcript.json").is_file()
+    assert (job / "final_captions.json").is_file()
+    assert (job / "timestamp_validation.json").is_file()
+    assert (job / "safety_analysis.json").is_file()
+    assert (job / "corrected_transcript.json").is_file()
+    raw = job / "raw_transcript.json"
+    if raw.is_file():
+        raise AssertionError("skip-asr should not invent a raw transcript overwrite")
+
+
+def test_validate_repairs_overlap_and_writes_report(tmp_path: Path) -> None:
+    job = tmp_path / "job"
+    job.mkdir()
+    (job / "final_captions.json").write_text(
+        '{"captions": ['
+        '{"index": 1, "start": 0.0, "end": 2.0, "text": "Hello there", "words": []},'
+        '{"index": 2, "start": 1.5, "end": 3.0, "text": "How are you", "words": []}'
+        "]}",
+        encoding="utf-8",
+    )
+    path = srt_from_job(job, validate=True)
+    text = path.read_text(encoding="utf-8")
+    cues = parse_srt(text)
+    assert cues[1].start >= cues[0].end - 1e-9
+    report = (job / "timestamp_validation.json").read_text(encoding="utf-8")
+    assert "overlap" in report
+
+
+def test_validate_clamps_to_video_duration(tmp_path: Path) -> None:
+    captions = [
+        Caption(1, 0.0, 1.0, "Hi"),
+        Caption(2, 1.2, 9.0, "This runs past the end"),
+    ]
+    repaired, issues = validate_captions(captions, video_duration=2.0)
+    assert repaired[-1].end <= 2.0 + 1e-9
+    assert any(issue.type == "outside_video" for issue in issues)

@@ -28,7 +28,7 @@ class PaskettiFirstModel(ASRModel):
         self._backend = None
         self._aligner_enabled = False
 
-    def transcribe(self, audio_path: str | Path) -> Transcript:
+    def transcribe(self, audio_path: str | Path, vocabulary: list[str] | None = None) -> Transcript:
         print_device_banner(self.device, self.settings)
         audio_path = Path(audio_path)
         backend = self._load()
@@ -37,7 +37,15 @@ class PaskettiFirstModel(ASRModel):
             "language": self.settings.language,
             "return_time_stamps": self._aligner_enabled,
         }
-        results = backend.transcribe(**kwargs)
+        if vocabulary:
+            kwargs.update(_vocabulary_kwargs(backend.transcribe, vocabulary))
+        try:
+            results = backend.transcribe(**kwargs)
+        except TypeError:
+            kwargs.pop("hotwords", None)
+            kwargs.pop("context", None)
+            kwargs.pop("prompt", None)
+            results = backend.transcribe(**kwargs)
         result = results[0] if isinstance(results, list) else results
         text = (getattr(result, "text", None) or "").strip()
         language = getattr(result, "language", None) or self.settings.language
@@ -107,6 +115,25 @@ class PaskettiFirstModel(ASRModel):
         self._aligner_enabled = aligner_ok
         _LOADED[key] = (backend, aligner_ok)
         return backend
+
+
+def _vocabulary_kwargs(transcribe_fn, vocabulary: list[str]) -> dict:
+    import inspect
+
+    hints = [item for item in vocabulary if item][:40]
+    if not hints:
+        return {}
+    try:
+        params = inspect.signature(transcribe_fn).parameters
+    except (TypeError, ValueError):
+        return {}
+    if "hotwords" in params:
+        return {"hotwords": hints}
+    if "context" in params:
+        return {"context": ", ".join(hints)}
+    if "prompt" in params:
+        return {"prompt": "Vocabulary: " + ", ".join(hints)}
+    return {}
 
 
 def _wav_duration(path: Path) -> float:

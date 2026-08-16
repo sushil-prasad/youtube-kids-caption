@@ -170,12 +170,97 @@ def extract_audio(
     return audio_wav
 
 
+def wrap_audio_as_video(audio_path: str | Path, output: str | Path) -> Path:
+    """Put audio on a still black frame so the dashboard player can load it. Does not modify the original."""
+    audio_path = Path(audio_path)
+    output = Path(output)
+    if not audio_path.is_file():
+        raise FileNotFoundError(f"Audio not found: {audio_path}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    ffmpeg = find_ffmpeg()
+    cmd = [
+        ffmpeg,
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=0x1b1712:s=1280x720:r=25",
+        "-i",
+        str(audio_path),
+        "-shortest",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-movflags",
+        "+faststart",
+        str(output),
+    ]
+    completed = subprocess.run(cmd, capture_output=True, text=True)
+    if completed.returncode != 0 or not output.is_file() or output.stat().st_size == 0:
+        raise RuntimeError(f"FFmpeg could not wrap audio as video:\n{completed.stderr}")
+    return output
+
+
+def extract_thumbnail(video_path: str | Path, output: str | Path) -> Path:
+    """Grab an early frame for the dashboard poster. Does not modify the original video."""
+    video_path = Path(video_path)
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    ffmpeg = find_ffmpeg()
+    last_error = ""
+    for seek in ("0.5", "0"):
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-ss",
+            seek,
+            "-i",
+            str(video_path),
+            "-frames:v",
+            "1",
+            "-q:v",
+            "3",
+            str(output),
+        ]
+        completed = subprocess.run(cmd, capture_output=True, text=True)
+        last_error = completed.stderr
+        if completed.returncode == 0 and output.is_file() and output.stat().st_size > 0:
+            return output
+    raise RuntimeError(f"FFmpeg could not extract a thumbnail:\n{last_error}")
+
+
 def new_job_id(outputs_dir: Path | None = None) -> str:
     outputs_dir = outputs_dir or (ROOT / "outputs")
     outputs_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d")
     existing = list(outputs_dir.glob(f"job_{stamp}_*"))
     return f"job_{stamp}_{len(existing) + 1:03d}"
+
+
+def read_wav_mono(path: str | Path):
+    """Load a WAV as float32 mono in [-1, 1]. Used by optional diarization/sound-event stages."""
+    import numpy as np
+
+    wav_path = Path(path)
+    with wave.open(str(wav_path), "rb") as handle:
+        channels = handle.getnchannels()
+        rate = handle.getframerate()
+        width = handle.getsampwidth()
+        frames = handle.readframes(handle.getnframes())
+    if width == 2:
+        samples = np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0
+    elif width == 1:
+        samples = (np.frombuffer(frames, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+    else:
+        raise RuntimeError(f"Unsupported sample width {width} in {wav_path}")
+    if channels > 1:
+        samples = samples.reshape(-1, channels).mean(axis=1)
+    return samples, int(rate)
 
 
 def write_json(path: Path, payload: Any) -> None:
@@ -190,11 +275,21 @@ def read_json(path: Path) -> Any:
 def main(argv: list[str] | None = None) -> None:
     import argparse
 
-    parser = argparse.ArgumentParser(description="Extract 16 kHz mono PCM WAV from a video.")
-    parser.add_argument("video", help="Input video path")
-    parser.add_argument("--job-dir", required=True, help="Job output directory")
+    parser = argparse.ArgumentParser(
+        description="Extract 16 kHz mono PCM WAV, or wrap an audio clip in a silent-frame mp4."
+    )
+    parser.add_argument("video", nargs="?", help="Input video or audio path")
+    parser.add_argument("--job-dir", help="Job output directory (required unless --wrap-audio)")
     parser.add_argument("--normalize", action="store_true", help="Apply loudnorm")
+    parser.add_argument("--wrap-audio", dest="wrap_audio", help="Audio file to wrap as mp4")
+    parser.add_argument("--output", "-o", help="Output mp4 for --wrap-audio")
     args = parser.parse_args(argv)
+    if args.wrap_audio:
+        dest = Path(args.output) if args.output else Path(args.wrap_audio).with_suffix(".mp4")
+        print(wrap_audio_as_video(args.wrap_audio, dest))
+        return
+    if not args.video or not args.job_dir:
+        parser.error("video and --job-dir are required unless --wrap-audio is set")
     path = extract_audio(args.video, args.job_dir, normalize=args.normalize or None)
     print(path)
 

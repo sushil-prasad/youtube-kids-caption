@@ -1,0 +1,8 @@
+{
+  "name": "youtube-kids-caption-dashboard",
+  "private": true,
+  "description": "Creator review UI. Served by python -m app.main --serve — no Node build step.",
+  "scripts": {
+    "start": "echo Open http://127.0.0.1:8000 after: python -m app.main --serve"
+  }
+}

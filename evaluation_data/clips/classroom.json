@@ -1,0 +1,31 @@
+{
+  "id": "classroom",
+  "reference": {
+    "text": "The bass in class was so loud.",
+    "words": [
+      {"word": "The", "start": 0.0, "end": 0.15},
+      {"word": "bass", "start": 0.15, "end": 0.45},
+      {"word": "in", "start": 0.45, "end": 0.55},
+      {"word": "class", "start": 0.55, "end": 0.9},
+      {"word": "was", "start": 0.9, "end": 1.1},
+      {"word": "so", "start": 1.1, "end": 1.25},
+      {"word": "loud", "start": 1.25, "end": 1.7}
+    ]
+  },
+  "hypothesis": {
+    "text": "the bass in class was so loud",
+    "words": [
+      {"word": "the", "start": 0.0, "end": 0.15, "confidence": 0.99},
+      {"word": "bass", "start": 0.15, "end": 0.45, "confidence": 0.96},
+      {"word": "in", "start": 0.45, "end": 0.55, "confidence": 0.98},
+      {"word": "class", "start": 0.55, "end": 0.9, "confidence": 0.97},
+      {"word": "was", "start": 0.9, "end": 1.1, "confidence": 0.99},
+      {"word": "so", "start": 1.1, "end": 1.25, "confidence": 0.98},
+      {"word": "loud", "start": 1.25, "end": 1.7, "confidence": 0.95}
+    ]
+  },
+  "safety": {
+    "profane": [],
+    "clean": ["bass", "class", "loud"]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "confusions": {
+    "ass": ["bass", "as", "ask"],
+    "asshole": ["a-hole"],
+    "bitch": ["batch", "beach", "pitch", "bit"],
+    "crap": ["crab", "clap", "wrap"],
+    "damn": ["dam", "dan", "them"],
+    "dick": ["deck", "dig"],
+    "fuck": ["duck", "fork", "truck", "luck"],
+    "hell": ["hill", "help", "hello", "he'll"],
+    "piss": ["peace", "piece", "pass"],
+    "shit": ["ship", "sit", "fit", "shot", "shut"],
+    "slut": ["slot", "slight"]
+  },
+  "collocations": {
+    "really|idea": ["bad", "good", "great", "silly", "cool", "fun", "neat"],
+    "a|idea": ["bad", "good", "great", "fun", "silly"],
+    "the|guitar": ["bass"],
+    "the|": ["ship", "help", "hill"],
+    "sail|": ["ship"],
+    "|guitar": ["bass"],
+    "big|truck": ["dump", "duck", "red"]
+  }
+}

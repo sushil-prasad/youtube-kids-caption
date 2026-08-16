@@ -101,6 +101,25 @@ def load_transcript(path: str | Path) -> Transcript:
     return Transcript.from_dict(data)
 
 
+def job_transcript_path(job_dir: str | Path, *, stage: str = "segment") -> Path:
+    """Pick the latest transcript artifact. Safety stages must not read corrected output."""
+    job_dir = Path(job_dir)
+    if stage in {"safety", "annotate"}:
+        names = ("annotated_transcript.json", "punctuated_transcript.json", "word_timestamps.json")
+    else:
+        names = (
+            "corrected_transcript.json",
+            "annotated_transcript.json",
+            "punctuated_transcript.json",
+            "word_timestamps.json",
+        )
+    for name in names:
+        path = job_dir / name
+        if path.is_file():
+            return path
+    raise FileNotFoundError(f"Missing {job_dir / 'word_timestamps.json'}. Run timestamps first.")
+
+
 def build_word_timestamps(job_dir: str | Path) -> Path:
     job_dir = Path(job_dir)
     raw_path = job_dir / "raw_transcript.json"

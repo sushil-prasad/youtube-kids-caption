@@ -1,6 +1,6 @@
 # youtube-kids-caption
 
-To transcribe a video file to `.srt`, see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**.
+To transcribe a video or audio file to `.srt`, see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**. The implemented pipeline is `make pipeline VIDEO=clip.mp4` (dashboard optional). Evaluation: `make phase6`.
 
 # Build a Child-Focused Automatic Captioning System for YouTube Creators
 

@@ -1,0 +1,12 @@
+{
+  "name": "youtube-kids-caption fixture v1",
+  "note": "Synthetic children's-caption examples for metrics and ablation. Not a competition leaderboard.",
+  "disclaimer": "Captions are not guaranteed safe. Creator review is recommended.",
+  "clips": [
+    "clips/playground.json",
+    "clips/classroom.json",
+    "clips/ship.json",
+    "clips/flagged.json",
+    "clips/speed.json"
+  ]
+}

@@ -1,0 +1,9 @@
+# Phrase-level matches (normalized tokens joined by spaces).
+# phrase<TAB>severity
+
+what the hell	mild
+the hell	mild
+what the fuck	strong
+the fuck	strong
+son of a bitch	strong
+shut the hell up	mild

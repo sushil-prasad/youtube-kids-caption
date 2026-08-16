@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kids caption review</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div>
+        <p class="eyebrow">YouTube Captions</p>
+        <h1>Auto-Captions for YouTube Kids</h1>
+      </div>
+      <p class="disclaimer" id="disclaimer">
+        Auto-captions may contain errors.<br>Creator review is recommended.
+      </p>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="review">Review</button>
+      <button class="tab" data-tab="vocabulary">Vocabulary</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <section id="panel-review" class="panel is-active">
+      <div class="layout">
+        <div class="stage">
+          <form id="upload-form" class="upload">
+            <span class="label">Upload your video here.</span>
+            <div class="upload-actions">
+              <input id="file" type="file" accept=".mp4,.mov,.mkv,.wav,.mp3,.m4a,video/mp4,video/quicktime,audio/wav,audio/mpeg" hidden />
+              <button type="button" id="upload-file">Upload file</button>
+              <button type="button" id="remove-file" disabled>Remove file</button>
+            </div>
+          </form>
+          <p id="upload-status" class="status-line" hidden></p>
+          <div class="player-frame" id="player-frame" hidden>
+            <video id="player" controls playsinline preload="auto"></video>
+          </div>
+          <div class="status-card">
+            <p class="label">Processing</p>
+            <p id="job-status">No job yet</p>
+            <ol id="status-steps" class="steps"></ol>
+          </div>
+          <div id="quality" class="quality" hidden></div>
+          <div class="export-row">
+            <button type="button" data-export="reviewed.srt">Download reviewed SRT</button>
+            <button type="button" data-export="raw.srt">Download raw ASR SRT</button>
+            <button type="button" data-export="correction_report.md">Download correction report</button>
+            <button type="button" id="mark-reviewed">Mark reviewed</button>
+          </div>
+        </div>
+
+        <div class="editor">
+          <div class="editor-head">
+            <div>
+              <h2>Captions</h2>
+              <p>Click a timestamp to jump ahead. Colors mark confidence.</p>
+            </div>
+            <button type="button" id="download-srt" data-export="reviewed.srt">Download .srt</button>
+          </div>
+          <div id="timeline" class="timeline"></div>
+          <div id="caption-list" class="caption-list"></div>
+          <div id="safety-panel" class="safety" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-vocabulary" class="panel">
+      <h2>Custom vocabulary</h2>
+      <p>Upload character names, made-up words, and other custom vocabulary to improve caption accuracy.</p>
+      <form id="vocab-form" class="vocab-form">
+        <input id="vocab-term" type="text" placeholder="Add a word or phrase" required />
+        <select id="vocab-category">
+          <option value="character_names">Character names</option>
+          <option value="people">People</option>
+          <option value="games">Game terms</option>
+          <option value="toys">Toys</option>
+          <option value="locations">Places</option>
+          <option value="fictional">Made-up words</option>
+          <option value="other">Other</option>
+        </select>
+        <button type="submit">Add word</button>
+      </form>
+      <div id="vocab-groups" class="vocab-groups"></div>
+      <div class="vocab-actions">
+        <button type="button" id="vocab-export" class="vocab-list-btn">Export list</button>
+        <button type="button" id="vocab-import-btn" class="vocab-list-btn">Import list</button>
+        <input id="vocab-import" type="file" accept="application/json" hidden />
+      </div>
+    </section>
+
+    <section id="panel-settings" class="panel">
+      <h2>Creator safety settings</h2>
+      <form id="settings-form" class="settings">
+        <fieldset>
+          <legend>Safety mode</legend>
+          <label><input type="radio" name="safety_mode" value="strict" /> Strict</label>
+          <label><input type="radio" name="safety_mode" value="standard" /> Standard</label>
+          <label><input type="radio" name="safety_mode" value="review-only" /> Review-only</label>
+        </fieldset>
+        <fieldset>
+          <legend>Unknown profanity</legend>
+          <label><input type="radio" name="unknown_profanity" value="censor" /> Censor</label>
+          <label><input type="radio" name="unknown_profanity" value="flag" /> Flag</label>
+          <label><input type="radio" name="unknown_profanity" value="keep" /> Keep</label>
+        </fieldset>
+        <fieldset>
+          <legend>Sound effects</legend>
+          <label><input type="radio" name="enable_sound_events" value="true" /> Enable</label>
+          <label><input type="radio" name="enable_sound_events" value="false" /> Disable</label>
+        </fieldset>
+        <fieldset>
+          <legend>Speaker labels</legend>
+          <label><input type="radio" name="enable_speaker_labels" value="true" /> Enable</label>
+          <label><input type="radio" name="enable_speaker_labels" value="false" /> Disable</label>
+        </fieldset>
+        <button type="submit">Save settings</button>
+        <p id="settings-saved" class="status-line" hidden>Saved for the next job.</p>
+      </form>
+    </section>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
