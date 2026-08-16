@@ -1,0 +1,1 @@
+"""Captioning pipeline stages."""

@@ -1,0 +1,19 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+
+# Job artifacts and downloaded weights
+outputs/
+models/**
+!models/.gitkeep
+data/**
+!data/.gitkeep
+*.wav
+*.srt
+!tests/fixtures/**

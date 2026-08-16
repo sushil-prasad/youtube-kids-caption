@@ -1,0 +1,9 @@
+python-dotenv>=1.0
+numpy>=1.26
+soundfile>=0.12
+qwen-asr>=0.0.6
+torch>=2.2
+transformers>=4.51
+accelerate>=1.0
+huggingface_hub>=0.24
+pytest>=8.0

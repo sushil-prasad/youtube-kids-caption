@@ -1,5 +1,7 @@
 # youtube-kids-caption
 
+To transcribe a video file to `.srt`, see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**.
+
 # Build a Child-Focused Automatic Captioning System for YouTube Creators
 
 ## 1. Project goal
