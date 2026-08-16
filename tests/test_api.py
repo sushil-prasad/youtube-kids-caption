@@ -121,6 +121,10 @@ def test_dashboard_is_served(api) -> None:
     response = client.get("/")
     assert response.status_code == 200
     assert "Custom vocabulary" in response.text
+    assert "Try sample" in response.text
+    sample = client.get("/sample.mp4")
+    assert sample.status_code == 200
+    assert sample.headers["content-type"].startswith("video/")
     assert client.get("/api/health").json()["status"] == "ok"
 
 

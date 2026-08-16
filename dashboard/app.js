@@ -42,6 +42,21 @@ $("#upload-form").addEventListener("submit", (event) => event.preventDefault());
 
 $("#upload-file").addEventListener("click", () => $("#file").click());
 
+$("#try-sample").addEventListener("click", async () => {
+  const status = $("#upload-status");
+  status.hidden = false;
+  status.textContent = "Loading sample clip…";
+  const response = await fetch("/sample.mp4");
+  if (!response.ok) {
+    status.textContent = "Sample clip sample.mp4 is missing.";
+    return;
+  }
+  const blob = await response.blob();
+  const file = new File([blob], "sample.mp4", { type: blob.type || "video/mp4" });
+  previewLocalFile(file);
+  startUpload(file);
+});
+
 $("#remove-file").addEventListener("click", () => {
   $("#file").value = "";
   clearLocalPreview();

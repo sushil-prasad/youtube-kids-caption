@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -14,6 +14,7 @@ from app.config import ROOT
 from app.pipeline.profanity import DISCLAIMER
 
 DASHBOARD = ROOT / "dashboard"
+SAMPLE_CLIP = ROOT / "sample.mp4"
 
 
 def create_app() -> FastAPI:
@@ -48,8 +49,6 @@ def create_app() -> FastAPI:
         def dashboard_index() -> FileResponse:
             index = DASHBOARD / "index.html"
             if not index.is_file():
-                from fastapi import HTTPException
-
                 raise HTTPException(status_code=404, detail="Dashboard is not installed")
             return FileResponse(index)
 
@@ -60,6 +59,12 @@ def create_app() -> FastAPI:
         @app.get("/app.js", response_model=None)
         def dashboard_js() -> FileResponse:
             return FileResponse(DASHBOARD / "app.js", media_type="application/javascript")
+
+        @app.get("/sample.mp4", response_model=None)
+        def sample_clip() -> FileResponse:
+            if not SAMPLE_CLIP.is_file():
+                raise HTTPException(status_code=404, detail="Sample clip sample.mp4 is missing")
+            return FileResponse(SAMPLE_CLIP, media_type="video/mp4", filename="sample.mp4")
 
     return app
 
