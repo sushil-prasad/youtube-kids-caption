@@ -25,6 +25,8 @@ const state = {
   selected: null,
   duration: 0,
   previewUrl: null,
+  pollToken: 0,
+  uploadAbort: null,
 };
 
 const $ = (sel) => document.querySelector(sel);
@@ -57,14 +59,10 @@ $("#try-sample").addEventListener("click", async () => {
   startUpload(file);
 });
 
-$("#remove-file").addEventListener("click", () => {
-  $("#file").value = "";
-  clearLocalPreview();
-  syncFilePicker();
-});
+$("#cancel-upload").addEventListener("click", cancelUpload);
 
 $("#file").addEventListener("change", () => {
-  syncFilePicker();
+  syncCancelButton();
   const file = $("#file").files[0];
   if (!file) {
     clearLocalPreview();
@@ -74,30 +72,77 @@ $("#file").addEventListener("change", () => {
   startUpload(file);
 });
 
-function syncFilePicker() {
-  $("#remove-file").disabled = !$("#file").files[0];
+function syncCancelButton() {
+  const busy = Boolean(state.job && BUSY.has(state.job.status));
+  $("#cancel-upload").disabled = !($("#file").files[0] || state.previewUrl || busy || state.uploadAbort);
+}
+
+async function cancelUpload() {
+  if (state.uploadAbort) state.uploadAbort.abort();
+  state.uploadAbort = null;
+  state.pollToken += 1;
+  const jobId = state.jobId;
+  $("#file").value = "";
+  clearLocalPreview();
+  state.jobId = null;
+  state.job = null;
+  state.captions = [];
+  state.selected = null;
+  $("#caption-list").innerHTML = "";
+  $("#timeline").innerHTML = "";
+  const status = $("#upload-status");
+  status.hidden = false;
+  status.textContent = "Upload cancelled.";
+  renderStatus();
+  syncCancelButton();
+  if (jobId) {
+    await fetch(`/api/jobs/${jobId}/cancel`, { method: "POST" });
+  }
 }
 
 async function startUpload(file) {
   const status = $("#upload-status");
   status.hidden = false;
   status.textContent = "Uploading a copy of the video…";
+  if (state.uploadAbort) state.uploadAbort.abort();
+  state.uploadAbort = new AbortController();
+  syncCancelButton();
   const body = new FormData();
   body.append("file", file);
-  const response = await fetch("/api/upload", { method: "POST", body });
+  let response;
+  try {
+    response = await fetch("/api/upload", { method: "POST", body, signal: state.uploadAbort.signal });
+  } catch (error) {
+    if (error && error.name === "AbortError") return;
+    status.textContent = "Upload failed";
+    state.uploadAbort = null;
+    syncCancelButton();
+    return;
+  }
+  state.uploadAbort = null;
   const data = await response.json();
   if (!response.ok) {
-    status.textContent = data.detail || "Upload failed";
+    const detail = data.detail;
+    const busyId = detail && typeof detail === "object" ? detail.busy_job_id : null;
+    status.textContent =
+      (detail && detail.message) || (typeof detail === "string" ? detail : "Upload failed");
+    if (response.status === 409 && busyId) {
+      state.jobId = busyId;
+      showCaptionSkeleton();
+      pollJob();
+    }
+    syncCancelButton();
     return;
   }
   $("#file").value = "";
-  $("#remove-file").disabled = true;
   state.jobId = data.job_id;
   state.captions = [];
   state.selected = null;
   $("#caption-list").innerHTML = "";
   $("#timeline").innerHTML = "";
-  status.textContent = `Job ${state.jobId} queued. One video at a time.`;
+  status.textContent = `Job ${state.jobId} queued.`;
+  showCaptionSkeleton();
+  syncCancelButton();
   pollJob();
 }
 
@@ -120,6 +165,7 @@ function previewLocalFile(file) {
   $("#player-frame").hidden = false;
   player.load();
   player.addEventListener("loadeddata", showFirstFrame, { once: true });
+  syncCancelButton();
 }
 
 function clearLocalPreview(hide = true) {
@@ -205,7 +251,6 @@ $("#settings-form").addEventListener("submit", async (event) => {
     safety_mode: form.get("safety_mode"),
     unknown_profanity: form.get("unknown_profanity"),
     enable_sound_events: form.get("enable_sound_events") === "true",
-    enable_speaker_labels: form.get("enable_speaker_labels") === "true",
   };
   await fetch("/api/settings", { method: "PUT", headers: jsonHeaders(), body: JSON.stringify(body) });
   $("#settings-saved").hidden = false;
@@ -215,12 +260,17 @@ function jsonHeaders() {
   return { "Content-Type": "application/json" };
 }
 
+function confidenceColor(band) {
+  if (band === "low") return "var(--low)";
+  if (band === "medium") return "var(--medium)";
+  return "var(--high)";
+}
+
 function formatTime(seconds) {
   const value = Math.max(0, seconds || 0);
   const minutes = Math.floor(value / 60);
   const secs = Math.floor(value % 60);
-  const ms = Math.floor((value % 1) * 1000);
-  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
 function attachVideo(jobId) {
@@ -242,14 +292,23 @@ function attachVideo(jobId) {
 
 async function pollJob() {
   if (!state.jobId) return;
+  const token = state.pollToken;
   const response = await fetch(`/api/jobs/${state.jobId}`);
-  if (!response.ok) return;
+  if (!response.ok || token !== state.pollToken) return;
   state.job = await response.json();
   renderStatus();
+  syncCancelButton();
   if (state.job.has_video) attachVideo(state.jobId);
   if (state.job.has_captions) await loadCaptions();
-  if (BUSY.has(state.job.status) || state.job.status === "FAILED") {
-    setTimeout(pollJob, state.job.status === "FAILED" ? 8000 : 1500);
+  else if (BUSY.has(state.job.status)) showCaptionSkeleton();
+  else if (!$("#caption-list").querySelector(".cue:not(.skeleton)")) {
+    $("#caption-list").innerHTML = "";
+    $("#timeline").innerHTML = "";
+    $("#timeline").classList.remove("is-skeleton");
+  }
+  if (token !== state.pollToken) return;
+  if (BUSY.has(state.job.status)) {
+    setTimeout(pollJob, 1500);
   }
 }
 
@@ -277,7 +336,6 @@ function renderStatus() {
     ["Potential profanity", quality.potential_profanity],
     ["Auto-corrected", quality.automatically_corrected],
     ["Censored", quality.censored],
-    ["Speaker changes", quality.speaker_changes],
     ["Sound events", quality.sound_events],
     ["Reading-speed warnings", quality.reading_speed_warnings],
   ]
@@ -292,14 +350,41 @@ async function loadCaptions() {
   renderCaptions();
 }
 
+function showCaptionSkeleton() {
+  const list = $("#caption-list");
+  if (list.querySelector(".cue.skeleton")) return;
+  $("#timeline").classList.add("is-skeleton");
+  $("#timeline").innerHTML = [
+    [6, 16],
+    [28, 22],
+    [56, 14],
+    [76, 18],
+  ]
+    .map(([left, width]) => `<span style="left:${left}%;width:${width}%"></span>`)
+    .join("");
+  list.setAttribute("aria-busy", "true");
+  list.innerHTML = Array.from({ length: 7 }, () => {
+    return `<article class="cue skeleton" aria-hidden="true">
+      <span class="cue-bar"></span>
+      <div class="cue-body">
+        <span class="skeleton-line skeleton-time"></span>
+        <span class="skeleton-line skeleton-text"></span>
+        <span class="skeleton-line skeleton-text short"></span>
+      </div>
+    </article>`;
+  }).join("");
+}
+
 function renderCaptions() {
+  $("#timeline").classList.remove("is-skeleton");
+  $("#caption-list").removeAttribute("aria-busy");
   const duration = state.duration || 1;
   $("#timeline").innerHTML = state.captions
     .map((caption) => {
       const left = (caption.start / duration) * 100;
       const width = Math.max(0.6, ((caption.end - caption.start) / duration) * 100);
       const band = caption.confidence_band || "high";
-      const color = band === "low" ? "var(--low)" : band === "medium" ? "var(--medium)" : "var(--high)";
+      const color = confidenceColor(band);
       return `<span data-index="${caption.index}" style="left:${left}%;width:${width}%;background:${color}"></span>`;
     })
     .join("");
@@ -310,10 +395,13 @@ function renderCaptions() {
     .map((caption) => {
       const band = caption.confidence_band || "high";
       const active = state.selected === caption.index ? "is-active" : "";
-      const speaker = caption.speaker ? `${caption.speaker} · ` : "";
+      const color = confidenceColor(band);
       return `<article class="cue ${band} ${active}" data-index="${caption.index}">
-        <time>${speaker}${formatTime(caption.start)} → ${formatTime(caption.end)}</time>
-        <textarea>${escapeHtml(caption.text)}</textarea>
+        <span class="cue-bar" style="background:${color}" aria-hidden="true"></span>
+        <div class="cue-body">
+          <time>${formatTime(caption.start)} → ${formatTime(caption.end)}</time>
+          <textarea>${escapeHtml(caption.text)}</textarea>
+        </div>
       </article>`;
     })
     .join("");
@@ -401,7 +489,7 @@ async function loadVocabulary() {
   const labels = {
     character_names: "Character names",
     people: "People",
-    games: "Game terms",
+    games: "Brands",
     toys: "Toys",
     locations: "Places",
     fictional: "Made-up words",
@@ -447,3 +535,14 @@ async function loadSettings() {
 
 loadVocabulary();
 loadSettings();
+restoreActiveJob();
+
+async function restoreActiveJob() {
+  const response = await fetch("/api/jobs");
+  if (!response.ok) return;
+  const data = await response.json();
+  if (!data.busy_job_id) return;
+  state.jobId = data.busy_job_id;
+  showCaptionSkeleton();
+  pollJob();
+}

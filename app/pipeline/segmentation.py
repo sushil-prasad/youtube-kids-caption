@@ -104,10 +104,14 @@ def _speaker_of(word: Word) -> str | None:
 
 
 def _group_speaker(words: list[Word]) -> str | None:
-    speakers = {word.speaker for word in words if word.speaker}
-    if len(speakers) == 1:
-        return next(iter(speakers))
-    return words[0].speaker if words else None
+    counts: dict[str, int] = {}
+    for word in words:
+        if not word.speaker:
+            continue
+        counts[word.speaker] = counts.get(word.speaker, 0) + 1
+    if not counts:
+        return None
+    return max(counts, key=counts.get)
 
 
 def _plain_text(words: Iterable[Word]) -> str:

@@ -31,7 +31,7 @@
             <div class="upload-actions">
               <input id="file" type="file" accept=".mp4,.mov,.mkv,.wav,.mp3,.m4a,video/mp4,video/quicktime,audio/wav,audio/mpeg" hidden />
               <button type="button" id="upload-file">Upload file</button>
-              <button type="button" id="remove-file" disabled>Remove file</button>
+              <button type="button" id="cancel-upload" disabled>Cancel upload</button>
               <button type="button" id="try-sample">Try sample</button>
             </div>
           </form>
@@ -76,7 +76,7 @@
         <select id="vocab-category">
           <option value="character_names">Character names</option>
           <option value="people">People</option>
-          <option value="games">Game terms</option>
+          <option value="games">Brand names</option>
           <option value="toys">Toys</option>
           <option value="locations">Places</option>
           <option value="fictional">Made-up words</option>
@@ -111,11 +111,6 @@
           <legend>Sound effects</legend>
           <label><input type="radio" name="enable_sound_events" value="true" /> Enable</label>
           <label><input type="radio" name="enable_sound_events" value="false" /> Disable</label>
-        </fieldset>
-        <fieldset>
-          <legend>Speaker labels</legend>
-          <label><input type="radio" name="enable_speaker_labels" value="true" /> Enable</label>
-          <label><input type="radio" name="enable_speaker_labels" value="false" /> Disable</label>
         </fieldset>
         <button type="submit">Save settings</button>
         <p id="settings-saved" class="status-line" hidden>Saved for the next job.</p>

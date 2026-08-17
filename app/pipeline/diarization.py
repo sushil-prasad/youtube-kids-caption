@@ -162,26 +162,57 @@ def apply_speakers(words: list[Word], segments: list[SpeakerSegment]) -> list[Wo
     labeled: list[Word] = []
     for word in words:
         mid = (word.start + word.end) / 2.0
-        speaker = word.speaker
-        for segment in segments:
-            if segment.start - 1e-3 <= mid <= segment.end + 1e-3:
-                speaker = segment.speaker
-                break
+        speaker = _speaker_at(mid, segments) or word.speaker
         labeled.append(Word(word.word, word.start, word.end, word.confidence, speaker))
     return labeled
+
+
+def _speaker_at(mid: float, segments: list[SpeakerSegment]) -> str | None:
+    covering = [segment for segment in segments if segment.start - 1e-3 <= mid <= segment.end + 1e-3]
+    if covering:
+        return covering[-1].speaker
+    nearest = min(
+        segments,
+        key=lambda segment: 0.0
+        if segment.start <= mid <= segment.end
+        else min(abs(mid - segment.start), abs(mid - segment.end)),
+    )
+    return nearest.speaker
+
+
+def _label_turns_from_audio(turns: list[SpeakerSegment], audio_path: str | Path) -> list[SpeakerSegment]:
+    samples, rate = read_wav_mono(audio_path)
+    import numpy as np
+
+    features = []
+    for turn in turns:
+        i0 = int(max(0.0, turn.start) * rate)
+        i1 = max(i0 + 1, int(max(turn.end, turn.start + 0.05) * rate))
+        chunk = samples[i0:i1]
+        rms = float(np.sqrt(np.mean(chunk * chunk) + 1e-12)) if chunk.size else 0.0
+        zcr = float(np.mean(np.abs(np.diff(np.sign(chunk)))) / 2.0) if chunk.size > 1 else 0.0
+        features.append([np.log(rms + 1e-6), zcr])
+    labels = _cluster_two(features) if len(turns) >= 2 else [1] * len(turns)
+    if len(set(labels)) < 2:
+        return turns
+    return [
+        SpeakerSegment(str(label), turn.start, turn.end, f"Speaker {label}")
+        for turn, label in zip(turns, labels)
+    ]
 
 
 def diarize_words(words: list[Word], settings: Settings | None = None, audio_path: str | Path | None = None) -> list[SpeakerSegment]:
     settings = settings or load_settings()
     gap = settings.speaker_change_gap
-    if audio_path and Path(audio_path).is_file():
+    turns = segments_from_pauses(words, gap=gap)
+    if audio_path and Path(audio_path).is_file() and len(turns) >= 2:
         try:
-            segments = diarize_audio(audio_path, gap=gap)
-            if segments:
-                return segments
+            labeled = _label_turns_from_audio(turns, audio_path)
+            if len({segment.speaker for segment in labeled}) >= 2:
+                return labeled
         except Exception:
             pass
-    return segments_from_pauses(words, gap=gap)
+    return turns
 
 
 def diarization_from_job(job_dir: str | Path, settings: Settings | None = None) -> Path:

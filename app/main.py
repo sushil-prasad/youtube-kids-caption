@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs.router, prefix="/api")
     app.include_router(captions.router, prefix="/api")
     app.include_router(settings.router, prefix="/api")
+    jobs.reap_orphaned_jobs()
 
     @app.get("/api/health")
     def health() -> dict[str, str]:

@@ -39,7 +39,10 @@ async def upload_video(file: UploadFile = File(...)) -> dict:
     if busy:
         raise HTTPException(
             status_code=409,
-            detail=f"A job is already running ({busy}). The Mac prototype processes one video at a time.",
+            detail={
+                "message": f"A job is already running ({busy}). The Mac prototype processes one video at a time.",
+                "busy_job_id": busy,
+            },
         )
 
     dest = create_job_dir(filename)

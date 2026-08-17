@@ -199,10 +199,11 @@ make install   # once, so FastAPI is available
 
 Then open http://127.0.0.1:8000
 
-- Upload a `.mp4`, `.mov`, `.mkv`, or audio (`.wav`, `.mp3`, `.m4a`). A copy is stored in the job folder; the original file is not modified. Audio is wrapped in a black-frame mp4 so the player can run.
+- The page starts blank. Use **Upload file** or **Try sample** (`sample.mp4`). A copy is stored in the job folder; the original file is not modified. Audio is wrapped in a black-frame mp4 so the player can run.
+- The first frame appears paused; processing starts as soon as a file is chosen. **Cancel upload** stops the current job.
 - The Mac prototype processes **one video at a time**.
-- When status is `READY FOR REVIEW`, play the video, click captions to seek, edit text, and handle safety flags (Accept / Keep censored / Edit).
-- Confidence uses teal (high), amber (medium), and terracotta (low).
+- While processing, the caption list shows a skeleton. When status is `READY FOR REVIEW`, play the video, click captions to seek (`MM:SS` timestamps), edit text, and handle safety flags (Accept / Keep censored / Edit).
+- Confidence uses teal (high), amber (medium), and terracotta (low) on the timeline and on the left bar of each cue.
 - Add vocabulary and change safety settings from the other tabs. Settings apply to the next job.
 - Export **reviewed SRT**, **raw ASR SRT**, and a **correction report**. Raw ASR is always recoverable.
 

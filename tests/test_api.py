@@ -164,6 +164,40 @@ def test_one_job_at_a_time_returns_409(api, monkeypatch: pytest.MonkeyPatch) -> 
     assert first.status_code == 200
     second = client.post("/api/upload", files={"file": ("b.mp4", b"two", "video/mp4")})
     assert second.status_code == 409
+    assert second.json()["detail"]["busy_job_id"] == first.json()["job_id"]
+
+
+def test_cancel_job_allows_a_new_upload(api, monkeypatch: pytest.MonkeyPatch) -> None:
+    client, _tmp, _outputs = api
+
+    def noop(_job_id: str) -> None:
+        return None
+
+    monkeypatch.setattr("app.api.jobs.process_job", noop)
+    first = client.post("/api/upload", files={"file": ("a.mp4", b"one", "video/mp4")})
+    job_id = first.json()["job_id"]
+    cancelled = client.post(f"/api/jobs/{job_id}/cancel")
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "CANCELLED"
+    retry = client.post("/api/upload", files={"file": ("b.mp4", b"two", "video/mp4")})
+    assert retry.status_code == 200
+    assert retry.json()["job_id"] != job_id
+
+
+def test_restart_clears_stale_busy_job(api) -> None:
+    client, _tmp, outputs = api
+    stale = outputs / "job_stale"
+    stale.mkdir()
+    from app.pipeline.audio import write_json
+    from app.api.jobs import reap_orphaned_jobs, sync_sqlite
+
+    write_json(stale / "job.json", {"job_id": "job_stale", "status": "TRANSCRIBING"})
+    sync_sqlite("job_stale", {"status": "TRANSCRIBING", "original_filename": "old.mp4"})
+    assert client.post("/api/upload", files={"file": ("a.mp4", b"one", "video/mp4")}).status_code == 409
+    reap_orphaned_jobs()
+    retry = client.post("/api/upload", files={"file": ("a.mp4", b"one", "video/mp4")})
+    assert retry.status_code == 200
+    assert client.get("/api/jobs/job_stale").json()["status"] == "FAILED"
 
 
 def test_captions_get_put_and_safety(api) -> None:

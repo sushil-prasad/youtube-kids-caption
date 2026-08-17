@@ -1,6 +1,6 @@
 # youtube-kids-caption
 
-To transcribe a video or audio file to `.srt`, see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**. The implemented pipeline is `make pipeline VIDEO=clip.mp4` (dashboard optional). Evaluation: `make phase6`.
+To transcribe a video or audio file to `.srt`, see **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)**. CLI: `make pipeline VIDEO=clip.mp4`. Dashboard (optional): `python -m app.main --serve` at http://127.0.0.1:8000. Evaluation: `make phase6`.
 
 # Build a Child-Focused Automatic Captioning System for YouTube Creators
 
@@ -721,30 +721,31 @@ This should appear in the dashboard.
 
 # 24. Human review dashboard
 
-Build a creator-facing dashboard.
+The dashboard is implemented in `dashboard/` and served by `python -m app.main --serve` (http://127.0.0.1:8000). A page load starts blank; video and captions appear after **Upload file** or **Try sample**.
 
-The main screen should include:
+### Upload
+
+- **Upload file** — pick a `.mp4`, `.mov`, `.mkv`, or audio (`.wav`, `.mp3`, `.m4a`). Preview shows the first frame (paused). Processing starts immediately. A copy is stored in the job folder; the original is not modified.
+- **Cancel upload** — stop the in-progress job so another clip can be started.
+- **Try sample** — runs the pipeline on `sample.mp4`.
+- One video at a time. A leftover busy job from a server restart is marked interrupted so a new upload is not blocked.
 
 ### Video player
 
-Allow the creator to play the original video.
+Play the uploaded clip in a 16:9 frame (vertical videos are pillarboxed). Captions seek the player; timestamps on cues are `MM:SS`.
 
-### Caption timeline
+### Caption timeline and editor
 
-Show caption blocks aligned with the video.
-
-### Transcript editor
-
-Allow editing caption text directly.
+Caption blocks sit on a timeline aligned with the video. Click a cue to seek. Edit text in the transcript list. While a job is running, the caption list shows a skeleton loader.
 
 ### Confidence highlighting
 
-Use visual indicators for:
+The timeline and the left bar on each cue use the same colors:
 
 ```text
-high confidence
-medium confidence
-low confidence
+teal — high confidence
+amber — medium confidence
+terracotta — low confidence
 ```
 
 ### Safety warnings
@@ -764,6 +765,10 @@ Suggested correction:
 [Accept] [Keep censored] [Edit]
 ```
 
+### Quality report
+
+After captions are ready, the processing card is followed by overall confidence, word counts, low-confidence words, safety stats, and reading-speed warnings. The empty quality card is hidden until those numbers exist.
+
 ### Timeline synchronization
 
 Clicking a caption should seek the video to that timestamp.
@@ -782,7 +787,7 @@ Custom Vocabulary
 [+ Add word]
 
 Character names
-Game terms
+Brands
 Places
 Made-up words
 Other
@@ -810,13 +815,9 @@ Unknown profanity:
 Sound effects:
   ● Enable
   ○ Disable
-
-Speaker labels:
-  ● Enable
-  ○ Disable
 ```
 
-Use sensible defaults for children's content.
+Speaker labels are not shown in the dashboard. Use sensible defaults for children's content.
 
 ---
 
@@ -1286,18 +1287,17 @@ The final system should be modular enough that any individual component can be d
 The project is successful when a user can:
 
 1. Open the dashboard.
-2. Upload a children's video.
+2. Upload a children's video (or Try sample).
 3. Wait for processing.
 4. See the video and generated captions synchronized.
-5. See low-confidence captions.
+5. See low-confidence captions (timeline and cue color bars).
 6. See potentially unsafe words flagged.
 7. Accept/reject contextual corrections.
 8. Edit captions manually.
 9. Add custom vocabulary.
-10. Review speaker labels if enabled.
-11. Review detected sound events.
-12. Export a valid UTF-8 `.srt`.
-13. Upload that SRT to YouTube Studio.
+10. Review detected sound events if enabled.
+11. Export a valid UTF-8 `.srt`.
+12. Upload that SRT to YouTube Studio.
 
 The entire system should also work without the dashboard through the CLI.
 

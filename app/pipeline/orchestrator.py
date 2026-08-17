@@ -19,6 +19,11 @@ from app.pipeline.timestamps import build_word_timestamps, job_transcript_path, 
 from app.pipeline.vocabulary import apply_vocabulary, load_vocabulary, vocabulary_from_job
 from app.transcript import Transcript
 
+
+class PipelineCancelled(Exception):
+    """Creator stopped the dashboard job."""
+
+
 STOP_AFTER = (
     "extract-audio",
     "asr",
@@ -96,12 +101,17 @@ def run_pipeline(
     safety_mode: str | None = None,
     enable_diarization: bool = False,
     enable_sound_events: bool = False,
+    should_cancel=None,
 ) -> Path:
     settings = load_settings()
     backend = resolve_device(device or settings.device)
     print_device_banner(backend, settings)
     run_diarization = enable_diarization or settings.enable_diarization
     run_sound_events = enable_sound_events or settings.enable_sound_events
+
+    def _check_cancel() -> None:
+        if should_cancel and should_cancel():
+            raise PipelineCancelled("Cancelled by creator")
 
     if skip_asr:
         if not job_dir:
@@ -113,17 +123,20 @@ def run_pipeline(
         if video is None:
             raise ValueError("video path is required unless --skip-asr is set")
         dest = create_job(video, job_dir)
+        _check_cancel()
         _update_status(dest, "EXTRACTING_AUDIO")
         extract_audio(video, dest)
         if stop_after == "extract-audio":
             _update_status(dest, "EXTRACTING_AUDIO")
             return dest / "audio.wav"
 
+        _check_cancel()
         _update_status(dest, "TRANSCRIBING", {"device": backend, "asr_model": settings.asr_model})
         transcribe_job(dest, device=backend, model_name=settings.asr_model)
         if stop_after == "asr":
             return dest / "raw_transcript.json"
 
+    _check_cancel()
     _update_status(dest, "ALIGNING")
     timestamps_path = build_word_timestamps(dest)
     if stop_after == "timestamps":
@@ -133,6 +146,7 @@ def run_pipeline(
     if stop_after == "confidence":
         return dest / "confidence.json"
 
+    _check_cancel()
     _update_status(dest, "PUNCTUATING")
     punctuate_job(dest)
     if stop_after == "punctuation":
@@ -143,12 +157,14 @@ def run_pipeline(
         return dest / "vocabulary.json"
 
     if run_diarization or stop_after == "diarization":
+        _check_cancel()
         _update_status(dest, "DETECTING_SPEAKERS")
         diarization_from_job(dest, settings)
     if stop_after == "diarization":
         return dest / "speaker_segments.json"
 
     if run_sound_events or stop_after == "sound-events":
+        _check_cancel()
         _update_status(dest, "DETECTING_SOUNDS")
         sound_events_from_job(dest, settings)
     if stop_after == "sound-events":
@@ -156,21 +172,25 @@ def run_pipeline(
 
     _apply_vocabulary_transcript(dest, settings)
 
+    _check_cancel()
     _update_status(dest, "SAFETY_ANALYSIS")
     analysis_path = profanity_from_job(dest)
     if stop_after == "profanity":
         return analysis_path
 
+    _check_cancel()
     _update_status(dest, "CORRECTING", {"safety_mode": safety_mode or settings.safety_mode})
     correction_path = correction_from_job(dest, safety_mode=safety_mode or settings.safety_mode)
     if stop_after == "correction":
         return correction_path
 
+    _check_cancel()
     _update_status(dest, "SEGMENTING")
     segment_job(dest)
     if stop_after == "segmentation":
         return dest / "final_captions.json"
 
+    _check_cancel()
     _update_status(dest, "GENERATING_SRT")
     srt_path = srt_from_job(dest, output=None, validate=True)
     if output:

@@ -13,13 +13,14 @@ from pydantic import BaseModel
 
 from app.database import database as db
 from app.pipeline.audio import new_job_id, read_json, write_json
-from app.pipeline.orchestrator import run_pipeline
+from app.pipeline.orchestrator import PipelineCancelled, run_pipeline
 from app.pipeline.profanity import DISCLAIMER
 
 router = APIRouter()
 
 PROCESS_IN_BACKGROUND = True
 _worker_lock = threading.Lock()
+_cancel_events: dict[str, threading.Event] = {}
 
 VIDEO_SUFFIXES = (".mp4", ".mov", ".mkv")
 AUDIO_SUFFIXES = (".wav", ".mp3", ".m4a", ".aac", ".flac", ".ogg")
@@ -185,7 +186,11 @@ def enqueue(job_id: str) -> None:
 
 def process_job(job_id: str) -> None:
     """Run the existing CLI pipeline for one job. Tests monkeypatch this."""
+    cancel = _cancel_events.setdefault(job_id, threading.Event())
     with _worker_lock:
+        if cancel.is_set():
+            _cancel_events.pop(job_id, None)
+            return
         dest = job_path(job_id)
         video = find_job_video(dest)
         if video is None:
@@ -209,8 +214,15 @@ def process_job(job_id: str) -> None:
                 safety_mode=str(creator["safety_mode"]),
                 enable_diarization=bool(creator.get("enable_speaker_labels")),
                 enable_sound_events=bool(creator.get("enable_sound_events")),
+                should_cancel=cancel.is_set,
             )
+        except PipelineCancelled:
+            if load_job_json(dest).get("status") != "CANCELLED":
+                _cancel(job_id)
+            return
         except Exception as exc:  # noqa: BLE001 — surface any pipeline failure to the dashboard
+            if cancel.is_set():
+                return
             _fail(job_id, str(exc))
             return
         finally:
@@ -219,11 +231,23 @@ def process_job(job_id: str) -> None:
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
+            _cancel_events.pop(job_id, None)
+        if cancel.is_set():
+            return
         meta = load_job_json(dest)
-        if meta.get("status") not in {"READY_FOR_REVIEW", "REVIEWED", "EXPORTED"}:
+        if meta.get("status") not in {"READY_FOR_REVIEW", "REVIEWED", "EXPORTED", "CANCELLED"}:
             meta["status"] = "READY_FOR_REVIEW"
             write_job_json(dest, meta)
         sync_sqlite(job_id, meta, error="")
+
+
+def _cancel(job_id: str) -> None:
+    dest = job_path(job_id)
+    meta = load_job_json(dest)
+    meta["status"] = "CANCELLED"
+    meta["error"] = "Cancelled by creator"
+    write_job_json(dest, meta)
+    sync_sqlite(job_id, meta, error=meta["error"])
 
 
 def _fail(job_id: str, message: str) -> None:
@@ -233,6 +257,20 @@ def _fail(job_id: str, message: str) -> None:
     meta["error"] = message
     write_job_json(dest, meta)
     sync_sqlite(job_id, meta, error=message)
+
+
+def reap_orphaned_jobs(message: str = "Interrupted when the dashboard restarted.") -> list[str]:
+    """Fail leftover in-progress jobs. Pipeline threads do not survive a server restart."""
+    failed: list[str] = []
+    seen: set[str] = set()
+    while True:
+        busy = db.busy_job_id()
+        if not busy or busy in seen:
+            break
+        seen.add(busy)
+        _fail(busy, message)
+        failed.append(busy)
+    return failed
 
 
 def _read(path: Path) -> dict[str, Any] | None:
@@ -253,6 +291,21 @@ def list_jobs() -> dict[str, Any]:
 
 @router.get("/jobs/{job_id}")
 def get_job(job_id: str) -> dict[str, Any]:
+    return job_payload(job_id)
+
+
+@router.post("/jobs/{job_id}/cancel")
+def cancel_job(job_id: str) -> dict[str, Any]:
+    dest = require_job_dir(job_id)
+    meta = load_job_json(dest)
+    status = meta.get("status")
+    if status in {"READY_FOR_REVIEW", "REVIEWED", "EXPORTED"}:
+        raise HTTPException(status_code=409, detail=f"Job already finished (status={status})")
+    if status == "CANCELLED":
+        return job_payload(job_id)
+    event = _cancel_events.setdefault(job_id, threading.Event())
+    event.set()
+    _cancel(job_id)
     return job_payload(job_id)
 
 

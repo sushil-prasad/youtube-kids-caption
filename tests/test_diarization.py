@@ -41,7 +41,12 @@ def test_rename_speakers_uses_creator_map() -> None:
     assert renamed[1].speaker == "Liam"
 
 
-def test_speaker_labels_affect_segmentation() -> None:
+def test_apply_speakers_covers_gaps_between_tiny_segments() -> None:
+    words = _words("Hello there friend", 0.0, 0.4)
+    labeled = apply_speakers(words, [SpeakerSegment("1", 0.0, 0.2), SpeakerSegment("2", 1.1, 1.2)])
+    assert all(word.speaker in {"1", "2"} for word in labeled)
+    assert labeled[0].speaker == "1"
+    assert labeled[-1].speaker == "2"
     mom = _words("Look at that", 0.0, 0.5)
     kid = _words("Wow a dinosaur", 1.6, 0.5)
     labeled = apply_speakers(
